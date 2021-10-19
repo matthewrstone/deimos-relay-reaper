@@ -1,0 +1,25 @@
+parameters:
+  owner:
+    default: ""
+  time_left:
+    default: ""
+  prefix:
+    default: ""
+triggers:
+- name: generic-webhook
+  source:
+    type: webhook
+    image: relaysh/stdlib-trigger-json
+  binding:
+    parameters:
+      owner: !Data owner
+      time_left: !Data time_left
+      prefix: !Data prefix
+steps:
+- name: message-send
+  image: relaysh/slack-step-message-send
+  spec:
+    connection: ${connections['slack']['deimos-slack']}
+    channel: "#proj-deimos-notify"
+    username: "Deimos Reaper"
+    message: "Environment ${parameters.prefix} will expire soon (${parameters.time_left})."

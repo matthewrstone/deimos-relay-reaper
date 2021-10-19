@@ -1,0 +1,29 @@
+parameters:
+  prefix:
+    description: The key name to search for state.
+    default: 'souldo'
+  bucket:
+    description: The bucket to search within.
+    default: 'wompywomp'
+  region:
+    description: 'aws region'
+    default: 'us-west-2'
+steps:
+- name: destroy-terraform-stack
+  image: relaysh/terraform-step-destroy
+  spec:
+    aws:
+      connection: !Connection {type: aws, name: souldo-aws}
+      region: 'us-west-2'
+    backendConfig:
+      region: us-west-2
+      bucket: ${parameters.bucket}
+      key: "${parameters.prefix}/terraform.tfstate"
+    workspace: default
+    git:
+      name: tf_dummy
+      repository: git@github.com:matthewrstone/tf_dummy.git
+      connection: ${connections.ssh.github}
+      branch: main
+steps:
+- name: purge-bad-dns-records
