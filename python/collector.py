@@ -2,8 +2,6 @@ from datetime import datetime, timedelta, timezone
 
 import json
 import boto3
-import requests
-import urllib3
 
 class Collector:
     def __init__(self):
@@ -14,7 +12,7 @@ class Collector:
         response = []
         for region in self.regions:
           # Create a client connection
-            ec2 = boto3.resource('ec2')      
+            ec2 = boto3.resource('ec2', region_name=region)      
             # Get the EC2 Instances
             for instance in ec2.instances.all():
                 owner = None
@@ -22,7 +20,7 @@ class Collector:
                 prefix = None
                 cname = None
                 # AZ breaks if none available
-                #az = [i.subnet.availability_zone for i in instance.network_interfaces][0]
+                az = [i.subnet.availability_zone for i in instance.network_interfaces][0]
                 for tag in instance.tags:
                     if tag['Key'] == 'expiration_date':
                         exp_date = tag['Value']
