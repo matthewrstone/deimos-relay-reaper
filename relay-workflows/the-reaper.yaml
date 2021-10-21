@@ -1,29 +1,28 @@
-parameters:
-  prefix:
-    description: The key name to search for state.
-    default: 'souldo'
-  bucket:
-    description: The bucket to search within.
-    default: 'wompywomp'
-  region:
-    description: 'aws region'
-    default: 'us-west-2'
 steps:
-- name: destroy-terraform-stack
-  image: relaysh/terraform-step-destroy
+- name: collect-data
+  image: matthewstone/relay-deimos-collector:latest
   spec:
     aws:
-      connection: !Connection {type: aws, name: souldo-aws}
+      connection: !Connection {type: aws, name: deimos}
       region: 'us-west-2'
-    backendConfig:
-      region: us-west-2
-      bucket: ${parameters.bucket}
-      key: "${parameters.prefix}/terraform.tfstate"
-    workspace: default
-    git:
-      name: tf_dummy
-      repository: git@github.com:matthewrstone/tf_dummy.git
-      connection: ${connections.ssh.github}
-      branch: main
-steps:
-- name: purge-bad-dns-records
+- name: notify-expired
+  dependsOn: collect-data
+  image: matthewstone/relay-deimos-notifier:latest
+  spec:
+    data: ${outputs.'collect-data'.'data'}
+    notify_type: expired
+    slack_token: ${secrets.slack_token}
+- name: notify-expiring
+  dependsOn: collect-data
+  image: matthewstone/relay-deimos-notifier:latest
+  spec:
+    data: ${outputs.'collect-data'.'data'}
+    notify_type: expiring
+    slack_token: ${secrets.slack_token}
+- name: destroy-expired
+  dependsOn: notify-expired
+  image: matthewstone/relay-deimos-notifier:latest
+  spec:
+    delete_set: ${outputs.'notify-deleted'.'delete-set'}
+    notify_type: expired
+    slack_token: ${secrets.slack_token}
